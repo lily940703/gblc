@@ -16,9 +16,9 @@ The proposed method demonstrates superior forecasting performance based on US ma
 ### Data preparation
 
 ```{r}
-data = read.table("D:/CSC/GB/Mx_1x1.txt",head=T)
+data = read.table(".../Mortality_national_male.txt",head=T)
 data_y = data[data[,"Year"]%in%c(1969:2019),]
-data_pop = read.table("D:/CSC/GB/Population_national.txt",head=T)
+data_pop = read.table(".../Population_national.txt",head=T)
 data_pop_y = data_pop[data_pop[,"Year"]%in%c(1969:2019),]
 
 # T*n matrix
