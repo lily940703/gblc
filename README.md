@@ -86,5 +86,9 @@ R >= 4.2.2 with the following required packages:
 - `ggplot2` (3.4.2)
 - `reshape2` (1.4.4)
 - `splm` (1.6-2)
+- `parallel` (4.2.2)
+- `doParallel` (1.0.17)
+- `foreach` (1.5.2)
+
 
 
