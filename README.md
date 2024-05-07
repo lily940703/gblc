@@ -6,6 +6,14 @@
 ## Data
 The proposed method demonstrates superior forecasting performance based on US male mortality data from 1969 to 2019.
 
+## Environment requirements
+
+R >= 4.2.2 with the following required packages:
+
+- `demography` (1.22)
+- `lightgbm` (3.3.5)
+
+
 ## Usage
 - For point forecasts, use `gb_forecast` and `gb_forecast_state` functions for national and state levels respectively.
 - For prediction intervals, use `gb_forecast_pi` and `gb_forecast_pi_ss` functions for national and state levels respectively.
@@ -73,3 +81,5 @@ for (i in 2:85) {
   mase_gblc
 
 ```
+
+## For reproducibility purpose
