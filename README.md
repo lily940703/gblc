@@ -85,5 +85,6 @@ R >= 4.2.2 with the following required packages:
 - `MCS` (0.1.3)
 - `ggplot2` (3.4.2)
 - `reshape2` (1.4.4)
+- `splm` (1.6-2)
 
 
