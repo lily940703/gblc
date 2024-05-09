@@ -11,52 +11,10 @@ leecarter <- function(matrix,h=1, ln=FALSE){
   kapa = d[1]*U[,1]*sum(V[,1])
   
   matrix_sd_fitted = as.matrix(kapa)%*%t(V[,1]/sum(V[,1]))
-  
-  # arima_kapa = forecast::auto.arima(kapa)
-  # fitted_kapa = arima_kapa$fitted
-  # forec_kapa = forecast::forecast(arima_kapa,h=h)$mean
-  # matrix_sd_fitted = as.matrix(fitted_kapa)%*%t(V[,1]/sum(V[,1]))
-  
   matrix_fitted = sweep(matrix_sd_fitted,2,-ax)
-  
-  # forec_kb = as.numeric(forec_kapa)%*%t(V[,1]/sum(V[,1]))
-  # forec_motality = sweep(forec_kb,2,-ax)
-  
   rwf.model = forecast::rwf(kapa, drift=TRUE,h=h)
   kt.forecast = rwf.model$mean
   forec_kb = as.numeric(kt.forecast)%*%t(V[,1]/sum(V[,1]))
-  forec_motality = sweep(forec_kb,2,-ax)
-  
-  if(ln==TRUE){
-    matrix_fitted=exp(matrix_fitted)
-    forec_motality = exp(forec_motality)
-  }
-  return(list(fitted_motality = matrix_fitted,
-              forec_motality = forec_motality))
-}
-
-leecarter_seasonal <- function(matrix, h=1, ln=FALSE,
-                               sea_len){
-  if(ln==TRUE){
-    matrix=log(matrix)
-  }
-  T = dim(matrix)[1]
-  ax = apply(matrix,2,mean, na.rm=TRUE) 
-  matrix_sd = sweep(matrix,2,ax)
-  U = svd(matrix_sd)$u
-  V = svd(matrix_sd)$v
-  d = svd(matrix_sd)$d
-  kapa = d[1]*U[,1]*sum(V[,1])
-  
-  kapa = ts(kapa,frequency =sea_len)
-  arima_kapa = forecast::auto.arima(kapa,allowdrift = TRUE)
-  fitted_kapa = arima_kapa$fitted
-  forec_kapa = forecast::forecast(arima_kapa,h=h)$mean
-  
-  matrix_sd_fitted = as.matrix(fitted_kapa)%*%t(V[,1]/sum(V[,1]))
-  matrix_fitted = sweep(matrix_sd_fitted,2,-ax)
-  
-  forec_kb = as.numeric(forec_kapa)%*%t(V[,1]/sum(V[,1]))
   forec_motality = sweep(forec_kb,2,-ax)
   
   if(ln==TRUE){
@@ -127,18 +85,6 @@ obj_motality_0<-function(matrix_motality,fitted_motality,
   return(obj_T)
 }
 
-obj_motality_se<-function(matrix_motality,fitted_motality, 
-                         gamma, h=1){
-  T = dim(matrix_motality)[1]
-  obj_T = 0
-  for (t in 1:T) {
-    forec = fitted_motality[t,]
-    error = matrix_motality[t,] - gamma*(forec)
-    sq_error = t(error)%*%error
-    obj_T = obj_T+sq_error
-  }
-  return(obj_T)
-}
 
 gb_motality<-function(matrix_motality, matrix_W, 
                       lambda=1, h=1,ln,
@@ -164,40 +110,6 @@ gb_motality<-function(matrix_motality, matrix_W,
     gradient_row = ((matrix_motality[t,]-
                      gamma_opt*fitted_motality[t,])
     -lambda*(matrix_W+t(matrix_W))%*%fitted_motality[t,])
-    gradient=rbind(gradient,t(gradient_row))
-  }
-  return(list(gradient = gradient,
-              forec_motality=forec_motality,
-              fitted_motality = fitted_motality,
-              gamma_opt = gamma_opt,
-              value_opt = value_opt))
-}
-
-gb_motality_seasonal<-function(matrix_motality, matrix_W, 
-                      lambda=1, h=1,ln,iteration=1,sea_len = 1){
-  T = dim(matrix_motality)[1]
-  if(iteration==1){
-    lca = leecarter_seasonal(matrix_motality,h=h,ln=ln,
-                             sea_len = sea_len)
-    }else{
-    lca = leecarter_seasonal(matrix_motality,h=h,ln=ln,
-                             sea_len = 1)
-  }
-  fitted_motality = lca$fitted_motality
-  forec_motality = lca$forec_motality
-  opt = optim(par=1, obj_motality, method = "BFGS",
-              matrix_motality=matrix_motality,
-              fitted_motality=fitted_motality,
-              matrix_W=matrix_W,
-              lambda=lambda, h=h)
-  gamma_opt = opt$par
-  value_opt = opt$value
-  # T*n matrix
-  gradient = c()
-  for (t in 1:T) {
-    gradient_row = ((matrix_motality[t,]-
-                       gamma_opt*fitted_motality[t,])
-                    -lambda*(matrix_W+t(matrix_W))%*%fitted_motality[t,])
     gradient=rbind(gradient,t(gradient_row))
   }
   return(list(gradient = gradient,
@@ -277,47 +189,6 @@ gb_forecast <- function(matrix_input, matrix_W,
     if(n>1){
       # if(abs(process_value[n-1]-process_value[n])<threshold) break
       if(process_value[n]<threshold) break
-    }  
-  }
-  return(list(final_forecast = forec_sum,
-              process_fitted = fitted_inter,
-              process_forecast = forec_inter,
-              process_gamma = process_gamma,
-              process_value = process_value))
-}
-
-gb_forecast_seasonal <- function(matrix_input, matrix_W, 
-                        lambda=1, h=1, max.interation=50,
-                        scale=FALSE, threshold = 1e-07,
-                        sea_len = 1){
-  forec_sum = 0
-  fitted_sum = 0
-  forec_inter = list()
-  fitted_inter=list()
-  process_gamma = c()
-  process_value = c()
-  for (n in 1:max.interation) {
-    if(n==1){
-      ln=TRUE
-    }else{ln=FALSE}
-    gb = gb_motality_seasonal(matrix_motality=matrix_input,
-                     matrix_W = matrix_W,
-                     lambda=lambda, h=h,ln=ln,
-                     iteration = n,sea_len = sea_len)
-    matrix_input = gb$gradient
-    fitted = gb$fitted_motality
-    forec = gb$forec_motality
-    gamma = gb$gamma_opt
-    process_value = c(process_value,gb$value_opt)
-    process_gamma = c(process_gamma,gamma)
-    forec_sum = forec_sum + gamma*forec
-    fitted_sum = fitted_sum+gamma*fitted
-    forec_inter[[n]] = forec_sum
-    fitted_inter[[n]] = fitted_sum
-    # if(gb$value_opt<1e-05) break
-    if(n>1){
-      if(abs(process_value[n-1]-process_value[n])<threshold) break
-      # if(process_value[n]<threshold) break
     }  
   }
   return(list(final_forecast = forec_sum,
